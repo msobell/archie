@@ -3,7 +3,7 @@ import re
 from typing import List
 from langchain_core.documents import Document
 from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from app.utils import sanitize_path
 
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"

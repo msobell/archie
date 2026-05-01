@@ -21,11 +21,10 @@ direnv allow
 pip install -e .
 ```
 
-Create a `.envrc` file with your API keys:
+Create a `.envrc` file with your Anthropic API key:
 
 ```bash
-export GEMINI_API_KEY=your-gemini-key      # for the review LLM
-export ANTHROPIC_API_KEY=your-anthropic-key # for OCR
+export ANTHROPIC_API_KEY=your-anthropic-key
 ```
 
 Tesseract must be installed separately if you want the OCR fallback:

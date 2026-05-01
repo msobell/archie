@@ -2,7 +2,7 @@ import os
 import sys
 from typing import Optional
 from mcp.server.fastmcp import FastMCP
-from app.reviewer import ARCHIEReviewer
+from app.reviewer import ARCHIEReviewer, REVIEW_MODEL
 from app.ingest import ingest_documents
 
 # Calculate absolute paths based on this file's location
@@ -12,17 +12,12 @@ DOCS_DIR = os.path.join(PROJECT_ROOT, "docs")
 CHROMA_DB_DIR = os.path.join(PROJECT_ROOT, ".chroma_db")
 
 # Ensure environment is loaded
-if not os.getenv("GEMINI_API_KEY"):
+if not os.getenv("ANTHROPIC_API_KEY"):
     try:
         from dotenv import load_dotenv
-        # Look for .envrc in the project root
         load_dotenv(os.path.join(PROJECT_ROOT, ".envrc"))
     except ImportError:
         pass
-
-# LangChain requires GOOGLE_API_KEY
-if os.getenv("GEMINI_API_KEY") and not os.getenv("GOOGLE_API_KEY"):
-    os.environ["GOOGLE_API_KEY"] = os.getenv("GEMINI_API_KEY")
 
 # Create FastMCP server
 mcp = FastMCP("Archie")
@@ -102,14 +97,14 @@ def ingest_docs() -> str:
 def server_status() -> str:
     """Returns the status of the vector database and configuration."""
     db_exists = os.path.exists(CHROMA_DB_DIR)
-    api_key_exists = bool(os.getenv("GEMINI_API_KEY"))
-    
+    api_key_exists = bool(os.getenv("ANTHROPIC_API_KEY"))
+
     return (
         f"Project Root: {PROJECT_ROOT}\n"
         f"Database Initialized: {db_exists} ({CHROMA_DB_DIR})\n"
         f"API Key Configured: {api_key_exists}\n"
-        f"Embedding Model: gemini-embedding-001\n"
-        f"Review Model: gemini-3-flash-preview"
+        f"Embedding Model: all-MiniLM-L6-v2 (local)\n"
+        f"Review Model: {REVIEW_MODEL}"
     )
 
 if __name__ == "__main__":
