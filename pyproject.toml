@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "archie"
+version = "0.1.0"
+description = "HOA Design Review Bot"
+authors = [
+    { name = "Max", email = "max@w53.ventures" }
+]
+dependencies = [
+    "langchain==1.2.15",
+    "langchain-community==0.4.0",
+    "langchain-text-splitters==1.1.2",
+    "google-genai==0.8.6",
+    "langchain-google-genai==4.2.2",
+    "chromadb==1.5.8",
+    "python-dotenv==1.2.2",
+    "pillow==12.2.0",
+    "pymupdf==1.27.2.3",
+    "anthropic==0.97.0",
+    "pytesseract==0.3.13",
+    "sentence-transformers==5.4.1"
+]
+requires-python = ">=3.10"
+
+[project.scripts]
+archie = "app.main:main"
+
+[tool.setuptools]
+packages = ["app"]

@@ -1,0 +1,33 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.venv/
+.direnv/
+build/
+dist/
+*.egg-info/
+
+# Environment
+.env
+.envrc
+.DS_Store
+**/.DS_Store
+
+# Tesseract / OCR temp files
+*.png
+*.jpg
+*.pdf
+
+# Database
+.chroma_db/
+
+# HOA-specific docs
+docs/
+
+# Design docs
+SECURITY.md
+DESIGN.md
+TODO.md
