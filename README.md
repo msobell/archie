@@ -8,6 +8,7 @@ AI-powered HOA architectural review assistant. Reviews resident design requests 
 - **RAG-based review**: Chunks and indexes HOA documents into a local ChromaDB vector store, then retrieves relevant rules at query time.
 - **Decision + citations**: Returns `Approval`, `Denial`, or `Conditional Approval` with verbatim quotes from the matched guideline sections.
 - **Draft email**: Generates a short, board-ready response email for the homeowner.
+- **Memory layer**: Persists notes, prior decisions, and homeowner history across sessions with hybrid keyword + semantic search.
 - **MCP Server**: Exposes all tools for use with Claude Desktop or other MCP clients.
 
 ## Setup
@@ -66,7 +67,7 @@ Output includes a decision, reasoning, and cited excerpts from the guidelines.
 ### 4. Draft a response email
 
 ```bash
-archie review "I want to add a wood pergola in the backyard." --draft-email "Brandon"
+archie review "I want to add a wood pergola in the backyard." --draft-email "Bob"
 ```
 
 Prints a short, board-ready email to the homeowner after the review output.
@@ -79,4 +80,19 @@ Archie can be used as an MCP tool server with Claude Desktop or any MCP-compatib
 python -m app.mcp_server
 ```
 
-Tools exposed: `review_request`, `draft_review_email`, `ingest_docs`, `server_status`.
+### Review tools
+| Tool | Description |
+|---|---|
+| `review_request` | Analyze a request against community guidelines and return a decision with citations |
+| `draft_review_email` | Review a request and produce a board-ready email to the homeowner |
+| `ingest_docs` | Re-index all documents in `docs/` into the vector database |
+| `server_status` | Check database and API key configuration |
+
+### Memory tools
+| Tool | Description |
+|---|---|
+| `save_memory` | Save a note and link it to named entities (homeowners, addresses, request types) |
+| `query_memory` | Hybrid keyword + semantic search across saved memories |
+| `get_related_entities` | Walk the knowledge graph for all memories linked to a name or address |
+
+Memory is stored in `.memory.db` (SQLite) and persists across sessions. Vector search uses the same `all-MiniLM-L6-v2` model as the document index.

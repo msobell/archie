@@ -4,6 +4,7 @@ from typing import Optional
 from mcp.server.fastmcp import FastMCP
 from app.reviewer import ARCHIEReviewer, REVIEW_MODEL
 from app.ingest import ingest_documents
+from app.mcp.memory_tools import get_related_entities, query_memory, save_memory
 
 # Calculate absolute paths based on this file's location
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -106,6 +107,10 @@ def server_status() -> str:
         f"Embedding Model: all-MiniLM-L6-v2 (local)\n"
         f"Review Model: {REVIEW_MODEL}"
     )
+
+mcp.tool()(save_memory)
+mcp.tool()(query_memory)
+mcp.tool()(get_related_entities)
 
 if __name__ == "__main__":
     mcp.run(transport='stdio')

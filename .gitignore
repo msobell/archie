@@ -26,8 +26,10 @@ dist/
 
 # HOA-specific docs
 docs/
+.memory.db*
 
 # Design docs
 SECURITY.md
 DESIGN.md
 TODO.md
+

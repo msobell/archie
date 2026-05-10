@@ -20,7 +20,9 @@ dependencies = [
     "pymupdf==1.27.2.3",
     "anthropic==0.97.0",
     "pytesseract==0.3.13",
-    "sentence-transformers==5.4.1"
+    "sentence-transformers==5.4.1",
+    "sqlite-vec",
+    "sqlalchemy>=2.0"
 ]
 requires-python = ">=3.10"
 
@@ -28,4 +30,4 @@ requires-python = ">=3.10"
 archie = "app.main:main"
 
 [tool.setuptools]
-packages = ["app"]
+packages = ["app", "app.models", "app.memory", "app.mcp"]
