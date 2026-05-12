@@ -37,20 +37,36 @@ def get_reviewer():
 @mcp.tool()
 def review_request(request: str) -> str:
     """
-    Analyzes a resident's architectural request against community guidelines.
-    Provides a decision (Approval, Denial, or Conditional) with reasoning and citations.
+    Use this when a homeowner has submitted an architectural / design / improvement request and you need a decision (Approval, Denial, or Conditional Approval) with rule citations — but you are NOT yet drafting a reply to the homeowner.
+
+    Returns: decision, reasoning, HITL flag, and a list of citations (source, article, section, verbatim quote) drawn from the indexed HOA documents.
+
+    When to use:
+    - The user asks "should this be approved?", "what do the guidelines say about X?", "review this request", or pastes a request and wants an analysis.
+    - As a precursor when the user wants to discuss the decision before any email is written.
+
+    Do NOT use when:
+    - The user explicitly wants an email drafted — call `draft_review_email` instead (it runs the review internally; calling both is redundant).
+    - The user is asking a general lookup question with no specific request — answer from `query_memory` or by reading docs directly.
+
+    Argument: `request` is the homeowner's request in natural language.
     """
     try:
         reviewer = get_reviewer()
         result = reviewer.review_request(request)
-        
+
         output = [
             f"### DECISION: {result['decision']}",
             f"**HITL Required:** {result['hitl_required']}",
             f"\n**Reasoning:**\n{result['reasoning']}",
-            "\n**Citations:**"
         ]
-        
+
+        failure_notes = result.get("failure_notes", [])
+        if failure_notes:
+            output.append("\n**Review Notes (manual attention required):**")
+            output.extend(f"- {n}" for n in failure_notes)
+
+        output.append("\n**Citations:**")
         for cite in result['citations']:
             source = cite.get('source', 'Unknown')
             article = cite.get('article', '').replace('Unknown', '').strip()
@@ -60,31 +76,55 @@ def review_request(request: str) -> str:
             if quote:
                 line += f'\n  "{quote}"'
             output.append(line)
-            
+
         return "\n".join(output)
     except Exception as e:
         return f"Error: {str(e)}"
 
 @mcp.tool()
-def draft_review_email(request: str, homeowner_name: str) -> str:
+def draft_review_email(request: str, homeowner_name: Optional[str] = None) -> str:
     """
-    Reviews a resident's architectural request and drafts a decision email addressed to the homeowner.
-    Returns the full email body ready for board review before sending.
+    Use this when the user wants a board-ready email reply to a homeowner about their architectural request. This is the one-shot tool: it runs the full review internally AND drafts the email — do NOT call `review_request` first.
+
+    Returns: the decision header followed by a formatted email (Subject line, greeting, numbered citation items, closing).
+
+    When to use:
+    - The user says "draft an email", "write a reply", "respond to [homeowner]", or supplies a homeowner name alongside a request.
+    - Any time the deliverable is text to send back to a homeowner.
+
+    Do NOT use when:
+    - The user only wants a decision or rule analysis with no email — call `review_request` instead.
+    - The homeowner's name is unknown — ask for it first; it is required for the salutation.
+
+    Arguments: `request` is the homeowner's request; `homeowner_name` is who the email is addressed to (e.g. "Chad and Jaclyn").
     """
     try:
         reviewer = get_reviewer()
         result = reviewer.review_request(request)
-        email = reviewer.draft_email(result, homeowner_name)
+
+        # Caller-supplied name wins; otherwise use the parser's extraction; otherwise generic.
+        name = homeowner_name or result.get("homeowner_name") or "Homeowner"
+
+        email = reviewer.draft_email(result, name)
         decision = result.get('decision', 'Unknown')
-        return f"### Decision: {decision}\n\n### Draft Email:\n\n{email}"
+
+        sections = [f"### Decision: {decision}"]
+        failure_notes = result.get("failure_notes", [])
+        if failure_notes:
+            sections.append("### Review Notes (manual attention required):\n" + "\n".join(f"- {n}" for n in failure_notes))
+        sections.append(f"### Draft Email (addressed to: {name}):\n\n{email}")
+        return "\n\n".join(sections)
     except Exception as e:
         return f"Error: {str(e)}"
 
 @mcp.tool()
 def ingest_docs() -> str:
     """
-    Re-processes all text files in the docs/ folder and updates the vector database.
-    Use this if the HOA rules have been updated.
+    Use this ONLY when the HOA's source documents have changed and the vector index needs to be rebuilt — e.g. the user says "I added a new bylaw", "re-index the docs", "I updated the design guidelines", or reviews start returning stale citations.
+
+    Re-processes every .txt file in `docs/` and rewrites the ChromaDB index in place. Safe to re-run, but unnecessary on a normal review and slow (seconds to minutes depending on corpus size).
+
+    Do NOT use as a troubleshooting step for "no citations found" unless the user confirms the docs were changed — call `server_status` first to check whether the DB exists at all.
     """
     try:
         ingest_documents(DOCS_DIR, CHROMA_DB_DIR)
@@ -96,7 +136,13 @@ def ingest_docs() -> str:
 
 @mcp.tool()
 def server_status() -> str:
-    """Returns the status of the vector database and configuration."""
+    """
+    Use this for diagnostics — when a tool call has failed, when the user asks "is Archie set up?", or before the first review in a fresh environment to confirm the index and API key are in place.
+
+    Returns: project root path, whether the vector DB directory exists, whether ANTHROPIC_API_KEY is configured, the embedding model, and the review model.
+
+    Do NOT use as part of a normal review flow — it does not perform any review work.
+    """
     db_exists = os.path.exists(CHROMA_DB_DIR)
     api_key_exists = bool(os.getenv("ANTHROPIC_API_KEY"))
 

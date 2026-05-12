@@ -22,10 +22,14 @@ direnv allow
 pip install -e .
 ```
 
-Create a `.envrc` file with your Anthropic API key:
+Copy `.envrc.example` to `.envrc` and fill in your values:
 
 ```bash
-export ANTHROPIC_API_KEY=your-anthropic-key
+cp .envrc.example .envrc
+```
+
+```bash
+export ANTHROPIC_API_KEY=your-anthropic-api-key
 ```
 
 Tesseract must be installed separately if you want the OCR fallback:

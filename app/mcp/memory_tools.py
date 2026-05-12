@@ -26,7 +26,21 @@ def _get_session():
 
 def save_memory(content: str, entities: List[str], metadata: Optional[dict] = None) -> str:
     """
-    Save a note to persistent memory and link it to named entities (homeowners, addresses, request types, etc.).
+    Use this AFTER a review or conversation to persist anything worth recalling in a future session — a final decision, a board note, a homeowner's prior history, a recurring request pattern, or a clarification the user wants remembered. Memory persists across Claude Desktop sessions.
+
+    When to use:
+    - The user says "remember that...", "save this", "make a note", or finalizes a decision worth tracking.
+    - After `draft_review_email` produces a decision the user accepts — save the outcome linked to the homeowner.
+
+    Do NOT use for:
+    - Ephemeral within-conversation state.
+    - Content already present in the HOA documents (those are indexed separately).
+
+    Arguments:
+    - `content`: the note as a complete sentence or short paragraph.
+    - `entities`: list of names to index this memory under — homeowner names, addresses, request types (e.g. ["Chad Bloor", "123 Canyon Dr", "basketball court"]). At least one is strongly recommended so the memory is later findable via `get_related_entities`.
+    - `metadata`: optional dict for structured fields (decision, date, etc.).
+
     Returns the saved memory ID.
     """
     session = _get_session()
@@ -77,8 +91,19 @@ def save_memory(content: str, entities: List[str], metadata: Optional[dict] = No
 
 def query_memory(query: str, n_results: int = 5) -> str:
     """
-    Search saved memories using hybrid keyword + semantic search.
-    Useful for looking up prior decisions, homeowner history, or recurring request patterns.
+    Use this BEFORE reviewing a request to surface relevant prior context — past decisions on similar requests, prior interactions with the same homeowner, or recurring patterns the board has flagged. Searches via hybrid keyword + semantic ranking.
+
+    When to use:
+    - At the start of a new review, to check whether this homeowner or this kind of request has come up before.
+    - When the user asks "have we seen this before?", "what did we decide last time?", or "any history on X?".
+    - For free-text searches across saved notes.
+
+    Prefer `get_related_entities` instead when:
+    - You already know an exact homeowner name or address and want the full graph of memories linked to them.
+
+    Arguments:
+    - `query`: free-text search string.
+    - `n_results`: max results to return (default 5).
     """
     session = _get_session()
     try:
@@ -100,8 +125,16 @@ def query_memory(query: str, n_results: int = 5) -> str:
 
 def get_related_entities(entity_name: str) -> str:
     """
-    Look up all memories and entities linked to a name (e.g. a homeowner or address).
-    Walks the knowledge graph to surface prior requests and decisions.
+    Use this when you already have a specific homeowner name, address, or request-type label and want the complete history linked to it. Walks the knowledge graph and returns every memory mentioning the entity plus every other entity those memories link to.
+
+    When to use:
+    - The user names a specific homeowner or address ("what do we have on Chad Bloor?", "history for 123 Canyon Dr").
+    - As a follow-up to `query_memory` once you've identified the right entity.
+
+    Prefer `query_memory` instead when:
+    - The search is conceptual or topical rather than tied to a specific named entity.
+
+    Argument: `entity_name` — exact homeowner name, address, or label as previously saved. Case-insensitive. If no exact match exists, falls back to the closest memory.
     """
     session = _get_session()
     try:

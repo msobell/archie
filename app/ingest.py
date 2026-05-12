@@ -16,66 +16,60 @@ class HOAStructureSplitter:
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         # Pattern to match "ARTICLE I", "Section 1.1", or just "2.1 ", etc.
-        self.header_pattern = re.compile(r'^(ARTICLE\s+[IVXLC]+|Section\s+\d+(\.\d+)*|\d+\.\d+\s+)', re.IGNORECASE | re.MULTILINE)
+        self.header_pattern = re.compile(r'^(ARTICLE\s+[IVXLC]+|Section\s+\d+(\.\d+)*|\d+(\.\d+)+\s+)', re.IGNORECASE | re.MULTILINE)
+
+    def _make_chunk(self, text: str, source_name: str, article: str, section: str) -> Document:
+        return Document(
+            page_content=text.strip(),
+            metadata={"source": source_name, "article": article, "section": section},
+        )
 
     def split_text(self, text: str, source_name: str) -> List[Document]:
         chunks = []
         current_article = "Unknown"
         current_section = "General"
-        
-        # Split by lines to process headers
+        section_header_line = ""
+
         lines = text.split('\n')
-        current_chunk_text = ""
-        
+        current_chunk_lines = []
+
+        def flush(carry_header: bool = False):
+            content = "\n".join(current_chunk_lines).strip()
+            if content:
+                chunks.append(self._make_chunk(content, source_name, current_article, current_section))
+            current_chunk_lines.clear()
+            if carry_header and section_header_line:
+                # Begin the next chunk with the section header so it's never orphaned
+                current_chunk_lines.append(section_header_line)
+
         for line in lines:
             header_match = self.header_pattern.match(line.strip())
             if header_match:
-                # If we have a header, save the previous chunk if it's not empty
-                if current_chunk_text.strip():
-                    chunks.append(Document(
-                        page_content=current_chunk_text.strip(),
-                        metadata={
-                            "source": source_name,
-                            "article": current_article,
-                            "section": current_section
-                        }
-                    ))
-                
-                # Update context
+                flush()
                 header_text = header_match.group(0).upper()
                 if "ARTICLE" in header_text:
                     current_article = line.strip()
                     current_section = "Header"
+                    section_header_line = ""
                 else:
                     current_section = line.strip()
-                
-                current_chunk_text = line + "\n"
+                    section_header_line = line
+                current_chunk_lines.append(line)
             else:
-                current_chunk_text += line + "\n"
-                
-                # Fallback: if chunk gets too big, split it
-                if len(current_chunk_text) > self.chunk_size:
-                    chunks.append(Document(
-                        page_content=current_chunk_text.strip(),
-                        metadata={
-                            "source": source_name,
-                            "article": current_article,
-                            "section": current_section
-                        }
-                    ))
-                    current_chunk_text = "" # Simplified overlap for now
+                current_chunk_lines.append(line)
+                if sum(len(l) for l in current_chunk_lines) > self.chunk_size:
+                    # Keep last `chunk_overlap` chars worth of lines as overlap
+                    flush(carry_header=True)
+                    overlap_lines = []
+                    overlap_len = 0
+                    for l in reversed(current_chunk_lines):
+                        if overlap_len + len(l) > self.chunk_overlap:
+                            break
+                        overlap_lines.insert(0, l)
+                        overlap_len += len(l)
+                    current_chunk_lines.extend(overlap_lines)
 
-        # Add the final chunk
-        if current_chunk_text.strip():
-            chunks.append(Document(
-                page_content=current_chunk_text.strip(),
-                metadata={
-                    "source": source_name,
-                    "article": current_article,
-                    "section": current_section
-                }
-            ))
-            
+        flush()
         return chunks
 
 def ingest_documents(docs_dir: str, persist_dir: str):

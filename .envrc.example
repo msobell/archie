@@ -1,0 +1,2 @@
+layout python python3
+export ANTHROPIC_API_KEY=your-anthropic-api-key
